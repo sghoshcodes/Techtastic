@@ -56,6 +56,32 @@ Return this exact JSON structure:
 }`
 }
 
+/** Gemini 1.5 model IDs often return 404 for newer API keys; use current Flash models. */
+const DEFAULT_MODEL_ORDER = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.0-flash']
+
+function isModelNotFoundError(err) {
+  const s = String(err?.message || err)
+  return /\b404\b/.test(s) && /not found|is not found|does not exist/i.test(s)
+}
+
+function modelCandidates() {
+  const fromEnv = import.meta.env.VITE_GEMINI_MODEL?.trim()
+  return [...new Set([fromEnv, ...DEFAULT_MODEL_ORDER].filter(Boolean))]
+}
+
+async function generateProfileWithModel(genAI, modelId, rawText) {
+  const model = genAI.getGenerativeModel({ model: modelId })
+
+  const first = await model.generateContent(buildPrompt(rawText, false))
+
+  try {
+    return extractJsonObject(first.response.text())
+  } catch {
+    const second = await model.generateContent(buildPrompt(rawText, true))
+    return extractJsonObject(second.response.text())
+  }
+}
+
 export async function parseResume(file) {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY
   if (!apiKey) {
@@ -68,16 +94,24 @@ export async function parseResume(file) {
   }
 
   const genAI = new GoogleGenerativeAI(apiKey)
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
-
   let profile
-  try {
-    const result = await model.generateContent(buildPrompt(rawText, false))
-    profile = extractJsonObject(result.response.text())
-  } catch (err) {
-    // Retry once with stricter prompt
-    const result = await model.generateContent(buildPrompt(rawText, true))
-    profile = extractJsonObject(result.response.text())
+  let lastErr
+  for (const modelId of modelCandidates()) {
+    try {
+      profile = await generateProfileWithModel(genAI, modelId, rawText)
+      break
+    } catch (err) {
+      lastErr = err
+      if (isModelNotFoundError(err)) continue
+      throw err
+    }
+  }
+  if (!profile) {
+    throw lastErr instanceof Error
+      ? lastErr
+      : new Error(
+          'No working Gemini model for this API key. Set VITE_GEMINI_MODEL to an ID from https://ai.google.dev/gemini-api/docs/models/gemini'
+        )
   }
 
   // Defensive normalization

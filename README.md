@@ -11,7 +11,7 @@ Installable on iPhone Home Screen. No login. No backend database. $0 to run.
 - **For You** — combined roles + events feed sorted by urgency, then by personalized fit score
 - **Deadlines** — visual 7-day timeline of everything closing this week
 - **Buzz** — hot recruiting threads from r/csMajors and r/cscareerquestions
-- **Resume parsing** — Gemini 1.5 Flash extracts skills, experience, target roles, and projects
+- **Resume parsing** — Gemini Flash (default `gemini-2.5-flash`) extracts skills, experience, target roles, and projects
 - **Pull to refresh** on mobile, manual refresh button on desktop
 - **Installable PWA** — Add to Home Screen on iOS/Android for full-screen app feel
 
@@ -20,7 +20,7 @@ Installable on iPhone Home Screen. No login. No backend database. $0 to run.
 - React 18 + Vite 5
 - Tailwind CSS 3
 - vite-plugin-pwa (service worker + manifest)
-- @google/generative-ai (Gemini 1.5 Flash, free tier)
+- @google/generative-ai (Gemini Flash family, free tier)
 - pdfjs-dist (client-side PDF text extraction)
 - Vercel serverless functions for `/api/roles`, `/api/events`, `/api/buzz`
 
@@ -136,6 +136,7 @@ Items in the For You feed are sorted by urgency tier first, then by fit score wi
 
 ## Notes / caveats
 
+- **`gemini-1.5-flash` may return 404** for newer API keys — Google has moved defaults to Gemini 2.x / 2.5. This app tries `gemini-2.5-flash`, then `gemini-flash-latest`, then `gemini-2.0-flash`. Override with `VITE_GEMINI_MODEL` if needed; see the [model list](https://ai.google.dev/gemini-api/docs/models/gemini).
 - **VITE_GEMINI_API_KEY is exposed to the browser.** Vite inlines anything prefixed `VITE_` into the client bundle. This is acceptable for a free hobby app, but if abuse becomes a concern, rotate the key (Google AI Studio → API Keys → Delete) and consider proxying parsing through a server function instead.
 - **Resume PDFs must contain selectable text.** Scanned/image-only PDFs won't extract — the app will surface a clear error.
 - **Luma and Eventbrite** removed easy public event-search APIs. We attempt a best-effort JSON-LD scrape and always merge with a curated seed list in [`api/_lib/seedEvents.js`](api/_lib/seedEvents.js) — edit that file to keep the events fresh.
