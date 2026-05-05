@@ -1,0 +1,16 @@
+{
+  "name": "Techtastic",
+  "short_name": "Techtastic",
+  "description": "Your personalized new grad tech feed",
+  "theme_color": "#00C896",
+  "background_color": "#FAFAF8",
+  "display": "standalone",
+  "orientation": "portrait",
+  "start_url": "/",
+  "scope": "/",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
