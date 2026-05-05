@@ -39,7 +39,18 @@ export async function fetchJSON(url, { force = false } = {}) {
 
   const res = await fetch(url, { headers: { Accept: 'application/json' } })
   if (!res.ok) throw new Error(`${url} returned ${res.status}`)
-  const data = await res.json()
+  const text = await res.text()
+  let data
+  try {
+    data = JSON.parse(text)
+  } catch {
+    const preview = text.slice(0, 80).replace(/\s+/g, ' ')
+    throw new Error(
+      preview.startsWith('import') || preview.startsWith('<!') || preview.startsWith('<html')
+        ? `${url} did not return JSON (got HTML or JS). If you use npm run dev locally, /api routes are missing — use npx vercel dev.`
+        : `Invalid JSON from ${url}: ${preview}…`
+    )
+  }
 
   memoryCache.set(url, { t: Date.now(), data })
   writeLS(url, data)

@@ -5,6 +5,7 @@ import { urgencyRank } from '../utils/urgency.js'
 import FeedCard from '../components/FeedCard.jsx'
 import { SkeletonList } from '../components/SkeletonCard.jsx'
 import EmptyState from '../components/EmptyState.jsx'
+import { afterApiErrorCopy } from '../utils/devApiHint.js'
 
 export default function ForYou({ profile, refreshNonce }) {
   const roles = useEndpoint('/api/roles')
@@ -42,18 +43,12 @@ export default function ForYou({ profile, refreshNonce }) {
 
   if (!loading && items.length === 0) {
     const apiError = roles.error || events.error
-    const hint =
-      typeof window !== 'undefined' &&
-      window.location.hostname === 'localhost' &&
-      apiError
-        ? ' Plain npm run dev does not serve /api routes — run npx vercel dev in the project folder, or open your deployed Vercel URL.'
-        : ''
     return (
       <EmptyState
         title="Nothing in your feed yet"
         copy={
           apiError
-            ? `${String(apiError.message || apiError)}.${hint || ' Pull down to refresh.'}`
+            ? `${String(apiError.message || apiError)}.${afterApiErrorCopy(apiError)}`
             : 'Sources may be temporarily unreachable. Pull down to refresh.'
         }
       />

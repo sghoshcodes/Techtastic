@@ -3,6 +3,7 @@ import { useEndpoint } from '../hooks/useFeedData.js'
 import DeadlineCard from '../components/DeadlineCard.jsx'
 import { SkeletonList } from '../components/SkeletonCard.jsx'
 import EmptyState from '../components/EmptyState.jsx'
+import { afterApiErrorCopy } from '../utils/devApiHint.js'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -69,10 +70,15 @@ export default function Deadlines({ refreshNonce }) {
 
   const totalItems = days.reduce((acc, d) => acc + d.items.length, 0)
   if (!loading && totalItems === 0) {
+    const apiError = roles.error || events.error
     return (
       <EmptyState
-        title="Nothing closing in the next 7 days"
-        copy="You're all caught up. New deadlines will appear here as they're posted."
+        title={apiError ? 'Could not load deadlines' : 'Nothing closing in the next 7 days'}
+        copy={
+          apiError
+            ? `${String(apiError.message || apiError)}.${afterApiErrorCopy(apiError)}`
+            : "You're all caught up. New deadlines will appear here as they're posted."
+        }
       />
     )
   }
