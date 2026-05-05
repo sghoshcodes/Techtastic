@@ -1,15 +1,33 @@
 import { parseMarkdownTables, normalizeDatePosted } from './_lib/markdown.js'
+import { parseInternListHtml } from './_lib/internList.js'
+import { interleaveByTier } from './_lib/tiers.js'
 
+/** Extra markdown tables from community trackers + international listings. */
 const SOURCES = [
   {
-    name: 'speedyapply-2026-newgrad',
+    name: 'speedyapply-2026-newgrad-usa',
     url: 'https://raw.githubusercontent.com/speedyapply/2026-SWE-College-Jobs/main/NEW_GRAD_USA.md'
   },
   {
-    name: 'vanshb03-newgrad-2027',
-    url: 'https://raw.githubusercontent.com/vanshb03/New-Grad-2027/main/README.md'
+    name: 'speedyapply-2026-newgrad-intl',
+    url: 'https://raw.githubusercontent.com/speedyapply/2026-SWE-College-Jobs/main/NEW_GRAD_INTL.md'
+  },
+  {
+    name: 'speedyapply-2026-readme-index',
+    url: 'https://raw.githubusercontent.com/speedyapply/2026-SWE-College-Jobs/main/README.md'
+  },
+  {
+    name: 'vanshb03-newgrad-2027-dev',
+    url: 'https://raw.githubusercontent.com/vanshb03/New-Grad-2027/dev/README.md'
+  },
+  {
+    name: 'vanshb03-canada',
+    url: 'https://raw.githubusercontent.com/vanshb03/New-Grad-2027/dev/Canada.md'
   }
 ]
+
+/** Drop listings whose "posted" cell parsed to older than this (keeps feed fresher). */
+const MAX_LISTING_AGE_MS = 105 * 24 * 60 * 60 * 1000
 
 const TECH_TOKENS = [
   'software', 'swe', 'sde', 'engineer', 'developer',
@@ -69,7 +87,6 @@ async function fetchText(url) {
 }
 
 async function fetchInternList() {
-  // Best-effort: intern-list.com sometimes serves a public listings JSON; if not, skip silently.
   try {
     const res = await fetch('https://www.intern-list.com/', {
       headers: {
@@ -79,24 +96,32 @@ async function fetchInternList() {
     })
     if (!res.ok) return []
     const html = await res.text()
-    // Look for JSON-LD or script-injected listings; very loose extraction.
-    const rows = []
-    const cardRegex = /<a[^>]+href="(https?:\/\/[^"]+)"[^>]*>[\s\S]{0,400}?<h\d[^>]*>([^<]+)<\/h\d>[\s\S]{0,200}?<(?:span|div|p)[^>]*>([^<]+)<\/(?:span|div|p)>/gi
-    let m
-    while ((m = cardRegex.exec(html)) && rows.length < 40) {
-      rows.push({
-        company: (m[3] || '').trim(),
-        title: (m[2] || '').trim(),
-        location: '',
-        url: m[1],
-        datePosted: '',
-        deadline: ''
-      })
-    }
-    return rows
+    return parseInternListHtml(html)
   } catch {
     return []
   }
+}
+
+function filterStaleRows(rows, nowMs) {
+  return rows.filter((item) => {
+    if (item.deadline) {
+      const end = new Date(item.deadline).getTime()
+      if (!isNaN(end) && end < nowMs - 48 * 60 * 60 * 1000) return false
+    }
+    if (item.datePosted) {
+      const posted = new Date(item.datePosted).getTime()
+      if (!isNaN(posted) && nowMs - posted > MAX_LISTING_AGE_MS) return false
+    }
+    return true
+  })
+}
+
+function sortNewestFirst(rows) {
+  return [...rows].sort((a, b) => {
+    const ta = a.datePosted ? new Date(a.datePosted).getTime() : 0
+    const tb = b.datePosted ? new Date(b.datePosted).getTime() : 0
+    return tb - ta
+  })
 }
 
 export default async function handler(req, res) {
@@ -113,6 +138,8 @@ export default async function handler(req, res) {
 
     const seen = new Set()
     const out = []
+    const nowMs = Date.now()
+
     for (const row of all) {
       if (!row.company || !row.title) continue
       if (!isTechRole(row.title)) continue
@@ -133,16 +160,13 @@ export default async function handler(req, res) {
       })
     }
 
-    // Sort: most recent first by datePosted (nulls last)
-    out.sort((a, b) => {
-      const ta = a.datePosted ? new Date(a.datePosted).getTime() : 0
-      const tb = b.datePosted ? new Date(b.datePosted).getTime() : 0
-      return tb - ta
-    })
+    const fresh = filterStaleRows(out, nowMs)
+    const sorted = sortNewestFirst(fresh)
+    const mixed = interleaveByTier(sorted, 350)
 
     res.setHeader('Content-Type', 'application/json')
     res.setHeader('Cache-Control', 's-maxage=900, stale-while-revalidate=3600')
-    res.status(200).send(JSON.stringify({ count: out.length, items: out.slice(0, 300) }))
+    res.status(200).send(JSON.stringify({ count: mixed.length, items: mixed }))
   } catch (err) {
     res.status(500).json({ error: 'roles_fetch_failed', message: String(err && err.message ? err.message : err) })
   }

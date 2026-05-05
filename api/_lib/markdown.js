@@ -123,8 +123,20 @@ export function parseMarkdownTables(markdown) {
 export function normalizeDatePosted(raw) {
   if (!raw) return null
   const s = raw.trim()
+
+  // Explicit four-digit year (Sep 12, 2025 / September 12 2025 / 2025-09-12)
+  const ymd = s.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (ymd) {
+    const d = new Date(parseInt(ymd[1], 10), parseInt(ymd[2], 10) - 1, parseInt(ymd[3], 10))
+    if (!isNaN(d.getTime())) return d.toISOString()
+  }
+  const mdY = s.match(/^([A-Za-z]{3,9})\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})\b/)
+  if (mdY) {
+    const d = new Date(`${mdY[1]} ${mdY[2]}, ${mdY[3]}`)
+    if (!isNaN(d.getTime())) return d.toISOString()
+  }
+
   // Repos commonly write "Nov 15", "Nov 15, 2025", "2d", "1mo", etc.
-  // Try ISO / Date-parseable first.
   const direct = new Date(s)
   if (!isNaN(direct.getTime()) && s.length >= 5) return direct.toISOString()
 
@@ -143,7 +155,7 @@ export function normalizeDatePosted(raw) {
   }
 
   // "Nov 15" without year -> assume current year, fall back to last year if future
-  const monthDay = s.match(/^([A-Za-z]{3,9})\s+(\d{1,2})$/)
+  const monthDay = s.match(/^([A-Za-z]{3,9})\s+(\d{1,2})(?:st|nd|rd|th)?$/i)
   if (monthDay) {
     const year = now.getFullYear()
     const guess = new Date(`${monthDay[1]} ${monthDay[2]}, ${year}`)
@@ -154,3 +166,4 @@ export function normalizeDatePosted(raw) {
   }
   return null
 }
+

@@ -2,13 +2,16 @@ const TIER_1 = [
   'google', 'meta', 'apple', 'amazon', 'microsoft', 'nvidia', 'openai',
   'anthropic', 'databricks', 'stripe', 'figma', 'notion', 'vercel',
   'scale ai', 'cohere', 'deepmind', 'spacex', 'tesla', 'uber', 'airbnb',
-  'netflix', 'salesforce', 'adobe'
+  'netflix', 'salesforce', 'adobe', 'goldman', 'morgan stanley', 'jpmorgan',
+  'citadel', 'jane street', 'two sigma', 'de shaw', 'hudson river trading'
 ]
 
 const TIER_2 = [
   'cloudflare', 'twilio', 'mongodb', 'snowflake', 'palantir', 'datadog',
   'hashicorp', 'confluent', 'elastic', 'gitlab', 'atlassian', 'hubspot',
-  'zendesk', 'okta', 'pagerduty', 'splunk', 'supabase', 'linear', 'rippling'
+  'zendesk', 'okta', 'pagerduty', 'splunk', 'supabase', 'linear', 'rippling',
+  'coinbase', 'robinhood', 'doordash', 'instacart', 'snap', 'pinterest',
+  'lyft', 'dropbox', 'box', 'oracle', 'sap', 'ibm', 'intel', 'amd', 'qualcomm', 'capital one'
 ]
 
 export function computeFitScore(item, profile) {

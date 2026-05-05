@@ -63,7 +63,7 @@ npm install -g vercel
 vercel dev
 ```
 
-`vercel dev` serves both the Vite app and the Node functions in `api/` together at <http://localhost:3000>.
+The CLI prints the local URL in your terminal — often `http://localhost:3000`, but **if that port is taken Vercel picks another**. Always open the URL shown in the terminal (`✔ Ready! … Local: …`), not a guessed port.
 
 ## Deploy to Vercel
 
@@ -136,6 +136,7 @@ Items in the For You feed are sorted by urgency tier first, then by fit score wi
 
 ## Notes / caveats
 
+- **Roles feed freshness & variety:** `/api/roles` merges several GitHub trackers (US + international new grad, Canada, repo README index), plus best-effort parsing from [intern-list.com](https://www.intern-list.com/) when their HTML exposes structured data. Rows whose **posted** date parses to **more than ~105 days ago** are dropped so reopen months-old listings less often. Within recent roles, **tier‑1 / tier‑2 employers are round‑robin mixed** into the list so big tech isn’t buried under one subsection.
 - **`gemini-1.5-flash` may return 404** for newer API keys — Google has moved defaults to Gemini 2.x / 2.5. This app tries `gemini-2.5-flash`, then `gemini-flash-latest`, then `gemini-2.0-flash`. Override with `VITE_GEMINI_MODEL` if needed; see the [model list](https://ai.google.dev/gemini-api/docs/models/gemini).
 - **VITE_GEMINI_API_KEY is exposed to the browser.** Vite inlines anything prefixed `VITE_` into the client bundle. This is acceptable for a free hobby app, but if abuse becomes a concern, rotate the key (Google AI Studio → API Keys → Delete) and consider proxying parsing through a server function instead.
 - **Resume PDFs must contain selectable text.** Scanned/image-only PDFs won't extract — the app will surface a clear error.
