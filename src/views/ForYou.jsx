@@ -41,10 +41,21 @@ export default function ForYou({ profile, refreshNonce }) {
   }
 
   if (!loading && items.length === 0) {
+    const apiError = roles.error || events.error
+    const hint =
+      typeof window !== 'undefined' &&
+      window.location.hostname === 'localhost' &&
+      apiError
+        ? ' Plain npm run dev does not serve /api routes — run npx vercel dev in the project folder, or open your deployed Vercel URL.'
+        : ''
     return (
       <EmptyState
         title="Nothing in your feed yet"
-        copy="Sources may be temporarily unreachable. Pull down to refresh."
+        copy={
+          apiError
+            ? `${String(apiError.message || apiError)}.${hint || ' Pull down to refresh.'}`
+            : 'Sources may be temporarily unreachable. Pull down to refresh.'
+        }
       />
     )
   }
